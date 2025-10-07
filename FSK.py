@@ -85,7 +85,10 @@ def main():
 
     #generating random 16 bit input
     bitlen = 16
-    inpSig = [random.randint(0,1) for x in range(0,bitlen)]
+    #inpSig = [random.randint(0,1) for x in range(0,bitlen)]
+    #inpSig = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+    inpSig = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
     print('\nthe input binary sequence is : {}\n'.format(inpSig))
     
     #compute FSK of input signal with fskFreq1 for bit1 as 2Hz, fskFreq2 for  bit2 as 0.9Hz...frequencies chosen for better visibility in plots
