@@ -29,14 +29,14 @@ def CFSkgen(inpSig, fskFreq1, fskFreq2):
 
     for i in range(0, len(inpSig)):
         # this loop iterates 16 times for each bit
-        for j in range(lval, lval + 83):
+        for j in range(lval, lval + 100):
             # this loop iterates 100 times for each bit (once for each sample)
-            # if inpSig[i] == 1:
-            #     # append sinewave with frequency fskFreq1 for bit 1 --- 100 samples
-            #     mainsig.append(np.sin(2 * np.pi * fskFreq1 * timepd[j]))
-            # else:
-            #     # append sinewave with frequence fskFreq2 for bit 0 --- 100 samples
-            #     mainsig.append(np.sin(2 * np.pi * fskFreq2 * timepd[j]))
+            if inpSig[i] == 1:
+                # append sinewave with frequency fskFreq1 for bit 1 --- 100 samples
+                mainsig.append(np.sin(2 * np.pi * fskFreq1 * timepd[j]))
+            else:
+                # append sinewave with frequence fskFreq2 for bit 0 --- 100 samples
+                mainsig.append(np.sin(2 * np.pi * fskFreq2 * timepd[j]))
             
             adjsig.append(inpSig[i])
             lval += 1
@@ -110,13 +110,13 @@ def FSKdemod(FSKsig):
 # generating random 16 bit input
 bitlen = 16
 # inpSig = [random.randint(0,1) for x in range(0,bitlen)]
-inpSig = [1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+inpSig = [0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1]
 #inpSig = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 print("\nthe input binary sequence is : {}\n".format(inpSig))
 
 # compute FSK of input signal with fskFreq1 for bit1 as 2Hz, fskFreq2 for  bit2 as 0.9Hz...frequencies chosen for better visibility in plots
-timepd, mainsig, adjsig = CFSkgen(inpSig, 2.2, 1.2)
-# time = np.linspace(0, 16, 1600, endpoint=True)
+timepd, mainsig, adjsig = FSkgen(inpSig, 2, 0.9)
+time = np.linspace(0, 16, 1600, endpoint=True)
 
 # compute Frequency domain of the FSK signal
 # fftsig = fft(mainsig, time.size)
@@ -137,12 +137,12 @@ for bit in det_Bits:
 
 # Plotting the signals
 fig, axs = plt.subplots(3)
-#axs[0].plot(timepd, mainsig, label="FSK")
-# axs[0].set_xticks = np.arange(0.50, 101, 20)
+axs[0].plot(timepd, mainsig, label="FSK")
+axs[0].set_xticks = np.arange(0.50, 101, 20)
 
 # Ticks auf der x-Achse in 0.5er Schritten setzen
 # np.arange(start, stop, step) erzeugt die gewünschten Werte
-axs[0].set_xticks(np.arange(0, 16 + 1, 1/1.2))
+#axs[0].set_xticks(np.arange(0, 16 + 1, 1/1.2))
 
 axs[0].plot(timepd, adjsig, label="Binary Input")
 # axs[0].set_title("FSK Plot")

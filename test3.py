@@ -4,15 +4,53 @@ import matplotlib.pyplot as plt
 phi1 = np.ones(256)
 
 
+def dds():
+    fs = 19200
+    df = 100
+    N = fs // df
+    samples = fs // 1200
+    table = []
+    for n in range(N):
+        table.append(np.sin(2 * np.pi * n / N))
+
+    acc = 0
+    freq = []
+    for n in range(samples):
+        freq.append(table[acc])
+        acc = (acc + 12) % N
+
+    for n in range(samples, 2 * samples):
+        freq.append(table[acc])
+        acc = (acc + 22) % N
+
+    # t = np.arange(0, 16, 1)
+    t = np.arange(0, 2 / 1200, 1 / (samples * 1200))
+    plt.xticks(np.arange(0, 2 / (1200), 1 / (2 * 1200)))
+    plt.stem(t, freq, 'r')
+    plt.grid()
+    plt.show()
+
+
 def test1():
     y = []
     t = []
+    dt = 1 / 1200 /16
     phase = 0
-    for i in range(0, 8):
-        y.append(np.sin(2 * np.pi * f0 / fs * i))
-        print(2 * np.pi * f0 / fs * i / (2 * np.pi) * 360)
-        t.append(i * 1 / 1200)
 
+    for i in range(0, 16):
+        y.append(np.sin(phase))
+        phase += 2 * np.pi * f0 * dt
+        # print(2 * np.pi * f0 / fs * i / (2 * np.pi) * 360)
+        t.append(i * dt)
+
+    for i in range(16, 32):
+        y.append(np.sin(phase))
+        phase += 2 * np.pi * f1 * dt
+        # print(2 * np.pi * f1 / fs * i / (2 * np.pi) * 360)
+        t.append(i * dt)
+
+    plt.xticks(np.arange(0, 2 / bit_rate, 1 / (2*bit_rate)))
+    plt.grid(True)
     plt.plot(t, y)
 
 
@@ -37,14 +75,15 @@ def fsk_without_phase_jumps(bits, f0, f1, fs, Tb):
 
 
 # Parameter
+dds()
 bit_rate = 1200  # Bitrate in bits per second
 f0 = 1200  # Frequenz für Bit 0
 f1 = 2200  # Frequenz für Bit 1
-fs = 9600 # Abtastrate
+fs = 19200  # Abtastrate
 
 test1()
 
-# bits = [1, 0, 1, 1, 0, 1, 0, 0]
+# bits = [0, 0, 1, 1, 0, 1, 0, 0]
 bits = [0, 1]
 
 N = fs / bit_rate
