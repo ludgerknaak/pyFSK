@@ -35,12 +35,33 @@ plt.grid(True)
 
 # --- Anwendung des Filters auf ein Signal ---
 
-# 1. Testsignal erzeugen
-# Das Signal besteht aus zwei Frequenzen: 500 Hz (unter fc) und 2000 Hz (über fc)
-f1 = 500
-f2 = 2000
-t_signal = np.arange(0, 0.1, 1/Fs) # 100ms Signal
-signal_in = np.sin(2 * pi * f1 * t_signal) + 0.5 * np.sin(2 * pi * f2 * t_signal)
+# 1. FSK-Signal als Eingangssignal erzeugen
+bitrate = 1200  # Bitrate [bps]
+# Wähle Frequenzen, um den Filter zu testen:
+# f_pass liegt im Durchlassbereich (< 1200 Hz)
+# f_stop liegt im Sperrbereich (> 1200 Hz)
+f_pass = 1000   # Frequenz für Bit '1'
+f_stop = 2200   # Frequenz für Bit '0'
+
+# Beispiel-Bitsequenz
+data = [1, 1, 0, 0, 1, 0, 1, 1, 0]
+
+# Samples pro Bit und Gesamtzahl der Samples berechnen
+samples_per_bit = Fs // bitrate
+total_samples = samples_per_bit * len(data)
+
+# Frequenzverlauf über die Zeit erstellen
+f_t = np.zeros(total_samples)
+for i, bit in enumerate(data):
+    freq = f_pass if bit == 1 else f_stop
+    f_t[i * samples_per_bit : (i + 1) * samples_per_bit] = freq
+
+# Zeitachse für das Signal
+t_signal = np.arange(total_samples) / Fs
+
+# Phasenkontinuierliches FSK-Signal durch Phasenakkumulation erzeugen
+phi = 2 * pi * np.cumsum(f_t) * (1 / Fs)
+signal_in = np.sin(phi)
 
 # 2. Filter anwenden
 # sig.lfilter(b, a, x) wendet den Filter an. Für FIR ist a=1.
