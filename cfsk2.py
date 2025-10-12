@@ -2,88 +2,69 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.signal import butter, lfilter
 
-# Parameter
-fs = 10000  # Abtastrate [Hz]
-fc = 1000   # Trägerfrequenz [Hz]
-f_dev = 200  # Frequenzabweichung für CFSK [Hz]
-symbol_rate = 100  # Symbolrate [Symbole/s]
-samples_per_symbol = int(fs / symbol_rate)
+# Bandpass-Filter
+def bandpass_filter(signal, lowcut, highcut, fs, order=5):
+    nyq = 0.5 * fs
+    low = lowcut / nyq
+    high = highcut / nyq
+    b, a = butter(order, [low, high], btype='band')
+    return lfilter(b, a, signal)
 
-# Zeitachse
-duration = 1  # Sekunden
-t = np.arange(0, duration, 1/fs)
+# CFSK-Modulation
+def cfsk_modulate(bits, f0, f1, sample_rate, symbol_duration):
+    t = np.linspace(0, symbol_duration, int(sample_rate * symbol_duration), endpoint=False)
+    signal = np.concatenate([
+        np.sin(2 * np.pi * (f0 if bit == 0 else f1) * t)
+        for bit in bits
+    ])
+    return signal
 
-# Generiere zufällige Binärdaten
-np.random.seed(0)
-data = np.random.randint(0, 2, int(duration * symbol_rate))
+# CFSK-Demodulation (ohne Symbolvisualisierung)
+def cfsk_demodulate(signal, f0, f1, sample_rate, symbol_duration):
+    samples_per_symbol = int(symbol_duration * sample_rate)
+    num_symbols = len(signal) // samples_per_symbol
+    bits = []
 
-# CFSK-Signal generieren
-freqs = np.where(data == 0, fc - f_dev, fc + f_dev)
-signal = np.zeros(len(t))
+    for i in range(num_symbols):
+        symbol = signal[i*samples_per_symbol:(i+1)*samples_per_symbol]
 
-for i, bit in enumerate(data):
-    idx_start = i * samples_per_symbol
-    idx_end = idx_start + samples_per_symbol
-    freq = freqs[i]
-    if idx_end <= len(t):
-        signal[idx_start:idx_end] = np.cos(2 * np.pi * freq * t[idx_start:idx_end])
+        # Energie im Band um f0
+        s0 = bandpass_filter(symbol, f0 - 50, f0 + 50, sample_rate)
+        e0 = np.sum(s0**2)
 
-# === Quadratur-Demodulation ===
+        # Energie im Band um f1
+        s1 = bandpass_filter(symbol, f1 - 50, f1 + 50, sample_rate)
+        e1 = np.sum(s1**2)
 
-# 1. Mischen mit Träger (IQ Demodulation)
-i_mix = signal * np.cos(2 * np.pi * fc * t)
-q_mix = -signal * np.sin(2 * np.pi * fc * t)
+        bit = 0 if e0 > e1 else 1
+        bits.append(bit)
 
-# 2. Tiefpassfilter definieren
-def lowpass_filter(data, cutoff=500, fs=10000, order=5):
-    b, a = butter(order, cutoff / (0.5 * fs), btype='low')
-    return lfilter(b, a, data)
+    return bits
 
-# 3. Filtere I und Q
-i_baseband = lowpass_filter(i_mix)
-q_baseband = lowpass_filter(q_mix)
+# 🔧 Parameter
+sample_rate = 19200      # Hz
+symbol_duration = 1/1200    # Sekunden
+f0 = 1200                # Hz für Bit 0
+f1 = 2200                # Hz für Bit 1
+bits = [0]
 
-# 4. Komplexes Basisbandsignal
-z = i_baseband + 1j * q_baseband
+# 🔄 Modulation
+mod_signal = cfsk_modulate(bits, f0, f1, sample_rate, symbol_duration)
 
-# 5. Instantane Phase und Frequenz
-phase = np.unwrap(np.angle(z))
-inst_freq = np.diff(phase) * fs / (2 * np.pi)  # in Hz
-inst_freq = np.append(inst_freq, inst_freq[-1])  # gleiche Länge wie t
-
-# 6. Symbolentscheidung basierend auf Frequenz
-demod_bits = []
-
-for i in range(0, len(inst_freq), samples_per_symbol):
-    symbol_freq = np.mean(inst_freq[i:i+samples_per_symbol])
-    bit = 1 if symbol_freq > fc else 0
-    demod_bits.append(bit)
-
-demod_bits = np.array(demod_bits[:len(data)])
-
-# === Ergebnisse anzeigen ===
-
-plt.figure(figsize=(12, 6))
-
-plt.subplot(3, 1, 1)
-plt.plot(t, signal)
-plt.title("Empfangenes CFSK-Signal")
+# 📊 Input-Signal plotten
+time = np.linspace(0, len(mod_signal)/sample_rate, len(mod_signal), endpoint=False)
+plt.figure(figsize=(12, 3))
+plt.stem(time, mod_signal)
+plt.title("CFSK-Moduliertes Signal")
 plt.xlabel("Zeit [s]")
 plt.ylabel("Amplitude")
-
-plt.subplot(3, 1, 2)
-plt.plot(t, inst_freq)
-plt.title("Instantane Frequenz")
-plt.xlabel("Zeit [s]")
-plt.ylabel("Frequenz [Hz]")
-
-plt.subplot(3, 1, 3)
-plt.step(np.arange(len(data)), data, label="Original")
-plt.step(np.arange(len(demod_bits)), demod_bits, linestyle='--', label="Demoduliert")
-plt.title("Originale vs. demodulierte Bits")
-plt.xlabel("Symbol Index")
-plt.ylabel("Bit")
-plt.legend()
-
+plt.grid(True)
 plt.tight_layout()
 plt.show()
+
+# 🔁 Demodulation
+recovered_bits = cfsk_demodulate(mod_signal, f0, f1, sample_rate, symbol_duration)
+
+# 🖨️ Ergebnisse
+print("Gesendete Bits:  ", bits)
+print("Demodulierte Bits:", recovered_bits)
